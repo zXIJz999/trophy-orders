@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#070b14">
+<title>Trophy Orders</title>
+<meta name="description" content="Pick your games and get an order code to send with your ticket.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700;800&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+<script defer src="app.js"></script>
+</head>
+<body>
+<header class="top">
+  <div class="wrap top-row">
+    <div class="brand">Trophy <span>Orders</span></div>
+    <div class="credit">Made by zXIJz</div>
+  </div>
+</header>
+
+<main class="wrap">
+  <section class="intro">
+    <p class="eyebrow">Order builder</p>
+    <h1>Pick your games.<br>Send us the code.</h1>
+    <p class="lead">Search the library, tick everything you want, then copy your order code and paste it into your ticket. Up to <b id="max">300</b> games per order.</p>
+  </section>
+
+  <div class="grid">
+    <section class="panel">
+      <div class="panel-head">
+        <h2>Library</h2>
+        <span class="count" id="library-count">Loading</span>
+      </div>
+      <div class="tools">
+        <input id="search" type="search" placeholder="Search a game, e.g. uncharted" autocomplete="off" spellcheck="false">
+        <select id="region" aria-label="Region">
+          <option value="">All regions</option>
+          <option value="US">US</option>
+          <option value="EU">EU</option>
+          <option value="JP">JP</option>
+          <option value="AS">Asia</option>
+          <option value="KR">Korea</option>
+        </select>
+      </div>
+      <div class="bar">
+        <span id="result-count">Type to search</span>
+        <button class="link" id="add-all" type="button" disabled>Add all results</button>
+      </div>
+      <ul class="list" id="results"></ul>
+    </section>
+
+    <aside class="panel side">
+      <div class="panel-head">
+        <h2>Your order</h2>
+        <span class="count" id="selected-count">0 / 300</span>
+      </div>
+      <ul class="list picked" id="picked"></ul>
+      <p class="empty" id="empty">Nothing added yet.</p>
+      <div class="actions">
+        <button class="btn primary" id="generate" type="button" disabled>Generate order code</button>
+        <button class="btn ghost" id="clear" type="button" disabled>Clear</button>
+      </div>
+      <div class="code-box" id="code-box" hidden>
+        <label for="code">Your order code</label>
+        <textarea id="code" readonly rows="5"></textarea>
+        <button class="btn primary wide" id="copy" type="button">Copy code</button>
+        <p class="hint">Paste this into your ticket. It holds your whole game list.</p>
+      </div>
+    </aside>
+  </div>
+</main>
+
+<footer class="foot">
+  <div class="wrap">Made by zXIJz</div>
+</footer>
+</body>
+</html>
