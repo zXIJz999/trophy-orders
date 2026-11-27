@@ -319,9 +319,9 @@ textarea {
 
 .calc-inputs {
   display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 10px;
-  margin-bottom: 12px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  margin-bottom: 10px;
 }
 
 .field {
@@ -343,14 +343,48 @@ textarea {
   padding: 0 10px;
 }
 
-.calc-stats {
+.calc-goal {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.check-opt {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.check-opt input {
+  width: 15px;
+  height: 15px;
+  min-height: 0;
+  padding: 0;
+  accent-color: var(--blue2);
+  cursor: pointer;
+}
+
+.btn.small {
+  min-height: 34px;
+  padding: 0 12px;
+  font-size: 11px;
+}
+
+.calc-trophies {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 8px;
-  padding-top: 10px;
+  padding: 10px 0;
   border-top: 1px solid var(--line);
 }
 
+.calc-trophies span,
 .calc-stats span {
   display: block;
   color: var(--dim);
@@ -360,12 +394,26 @@ textarea {
   text-transform: uppercase;
 }
 
+.calc-trophies strong,
 .calc-stats strong {
   display: block;
   margin-top: 2px;
   color: var(--white);
   font-size: 14px;
   font-weight: 700;
+}
+
+.tr-plat strong { color: #7cd4ff; }
+.tr-gold strong { color: #f5c451; }
+.tr-silver strong { color: #cfd8e3; }
+.tr-bronze strong { color: #d98a5b; }
+
+.calc-stats {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  padding-top: 10px;
+  border-top: 1px solid var(--line);
 }
 
 #stat-level {

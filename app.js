@@ -19,7 +19,13 @@ const els = {
   copy: document.getElementById('copy'),
   startLevel: document.getElementById('start-level'),
   startPct: document.getElementById('start-pct'),
+  targetLevel: document.getElementById('target-level'),
+  platsOnly: document.getElementById('plats-only'),
+  autoFill: document.getElementById('auto-fill'),
   statPlats: document.getElementById('stat-plats'),
+  statGold: document.getElementById('stat-gold'),
+  statSilver: document.getElementById('stat-silver'),
+  statBronze: document.getElementById('stat-bronze'),
   statPoints: document.getElementById('stat-points'),
   statLevel: document.getElementById('stat-level'),
   calcNote: document.getElementById('calc-note')
@@ -37,8 +43,8 @@ function loadLibrary() {
   fetch('catalog.json')
     .then(res => res.json())
     .then(rows => {
-      games = rows.map(([id, name, region, points = null, plat = null]) => ({
-        id, name, region, points, plat, key: name.toLowerCase()
+      games = rows.map(([id, name, region, points = null, plat = null, bronze = null, silver = null, gold = null]) => ({
+        id, name, region, points, plat, bronze, silver, gold, key: name.toLowerCase()
       }));
       els.libraryCount.textContent = games.length.toLocaleString() + ' games';
       runSearch();
@@ -192,7 +198,7 @@ function calcLevel(totalPoints) {
   return { level: 999, pct: 0, tier: 'Platinum' };
 }
 
-function updateCalculator() {
+function updateCalculator(customNote = '') {
   const rawLvl = Number(els.startLevel.value);
   const startLvl = Math.max(1, Math.min(999, Number.isFinite(rawLvl) ? Math.floor(rawLvl) : 1));
   const rawPct = Number(els.startPct.value);
@@ -200,6 +206,9 @@ function updateCalculator() {
 
   let orderPts = 0;
   let plats = 0;
+  let gold = 0;
+  let silver = 0;
+  let bronze = 0;
   let known = 0;
   let noPlat = 0;
   selected.forEach(g => {
@@ -211,25 +220,128 @@ function updateCalculator() {
       if (g.plat > 0) plats += g.plat;
       else noPlat++;
     }
+    if (typeof g.gold === 'number') gold += g.gold;
+    if (typeof g.silver === 'number') silver += g.silver;
+    if (typeof g.bronze === 'number') bronze += g.bronze;
   });
 
   const startBase = basePoints(startLvl) + (startLvl < 999 ? Math.floor((startPct / 100) * levelCost(startLvl)) : 0);
   const after = calcLevel(startBase + orderPts);
   const gained = after.level - startLvl;
 
-  els.statPlats.textContent = String(plats) + (noPlat ? ` (${noPlat} no-plat)` : '');
+  els.statPlats.textContent = plats.toLocaleString();
+  els.statGold.textContent = gold.toLocaleString();
+  els.statSilver.textContent = silver.toLocaleString();
+  els.statBronze.textContent = bronze.toLocaleString();
   els.statPoints.textContent = '+' + orderPts.toLocaleString();
   els.statLevel.textContent = `Lvl ${after.level} (${after.pct}%)` + (gained > 0 ? ` +${gained}` : '');
 
   const missing = selected.size - known;
-  if (selected.size === 0) {
+  if (customNote) {
+    els.calcNote.hidden = false;
+    els.calcNote.textContent = customNote;
+  } else if (selected.size === 0) {
     els.calcNote.hidden = true;
-  } else if (missing > 0) {
-    els.calcNote.hidden = false;
-    els.calcNote.textContent = `${after.tier} tier · ${known}/${selected.size} games have point data (${missing} uncached).`;
   } else {
+    const bits = [`${after.tier} tier`];
+    if (noPlat > 0) bits.push(`${noPlat} no-plat`);
+    if (missing > 0) bits.push(`${known}/${selected.size} games have point data`);
+    else bits.push(`all ${selected.size} games calculated`);
     els.calcNote.hidden = false;
-    els.calcNote.textContent = `${after.tier} tier · all ${selected.size} games calculated.`;
+    els.calcNote.textContent = bits.join(' · ') + '.';
+  }
+}
+
+function shuffle(arr) {
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    const tmp = arr[i];
+    arr[i] = arr[j];
+    arr[j] = tmp;
+  }
+  return arr;
+}
+
+async function pickRandomToTarget() {
+  if (!games.length) return;
+  const rawStart = Number(els.startLevel.value);
+  const startLvl = Math.max(1, Math.min(999, Number.isFinite(rawStart) ? Math.floor(rawStart) : 1));
+  const rawPct = Number(els.startPct.value);
+  const startPct = startLvl >= 999 ? 0 : Math.max(0, Math.min(99, Number.isFinite(rawPct) ? Math.floor(rawPct) : 0));
+  const rawTarget = Number(els.targetLevel.value);
+  const targetLvl = Number.isFinite(rawTarget) ? Math.min(999, Math.floor(rawTarget)) : 0;
+
+  if (targetLvl <= startLvl) {
+    els.targetLevel.focus();
+    updateCalculator('Enter a target level higher than your current level.');
+    return;
+  }
+
+  const startBase = basePoints(startLvl) + (startLvl < 999 ? Math.floor((startPct / 100) * levelCost(startLvl)) : 0);
+  const targetBase = basePoints(targetLvl);
+  let remainingPts = targetBase - startBase;
+  if (remainingPts <= 0) {
+    updateCalculator('You are already at or above the target level.');
+    return;
+  }
+
+  const region = els.region.value;
+  const platsOnly = els.platsOnly.checked;
+  const groups = new Map();
+  for (const g of games) {
+    if (typeof g.points !== 'number' || g.points <= 0) continue;
+    if (region && g.region !== region) continue;
+    if (platsOnly && !(g.plat > 0)) continue;
+    const k = gameKey(g);
+    let bucket = groups.get(k);
+    if (!bucket) {
+      bucket = [];
+      groups.set(k, bucket);
+    }
+    bucket.push(g);
+  }
+
+  const pool = [];
+  groups.forEach(bucket => {
+    pool.push(bucket[Math.floor(Math.random() * bucket.length)]);
+  });
+  shuffle(pool);
+
+  const picked = [];
+  while (remainingPts > 0 && picked.length < MAX_GAMES && pool.length > 0) {
+    const slotsLeft = MAX_GAMES - picked.length;
+    const avgNeeded = remainingPts / slotsLeft;
+    let idx = -1;
+    if (avgNeeded > 1250) {
+      idx = pool.findIndex(g => g.points >= avgNeeded);
+      if (idx < 0) {
+        let bestIdx = 0;
+        for (let i = 1; i < pool.length; i++) {
+          if (pool[i].points > pool[bestIdx].points) bestIdx = i;
+        }
+        idx = bestIdx;
+      }
+    } else {
+      idx = 0;
+    }
+    const chosen = pool[idx];
+    pool[idx] = pool[pool.length - 1];
+    pool.pop();
+    picked.push(chosen);
+    remainingPts -= chosen.points;
+  }
+
+  selected.clear();
+  picked.forEach(g => selected.set(g.id, g));
+  let note = '';
+  if (remainingPts > 0) {
+    const reached = calcLevel(targetBase - remainingPts);
+    note = `Max ${MAX_GAMES} games per order reached (Lvl ${reached.level} ${reached.pct}%) — ${remainingPts.toLocaleString()} pts short of Lvl ${targetLvl}.`;
+  }
+  refresh();
+  if (note) updateCalculator(note);
+  if (selected.size > 0) {
+    await showCode();
   }
 }
 
@@ -356,8 +468,9 @@ els.addAll.addEventListener('click', addAllResults);
 els.generate.addEventListener('click', showCode);
 els.copy.addEventListener('click', copyCode);
 els.clear.addEventListener('click', clearOrder);
-els.startLevel.addEventListener('input', updateCalculator);
-els.startPct.addEventListener('input', updateCalculator);
+els.startLevel.addEventListener('input', () => updateCalculator());
+els.startPct.addEventListener('input', () => updateCalculator());
+els.autoFill.addEventListener('click', pickRandomToTarget);
 
 drawPicked();
 loadLibrary();

@@ -66,9 +66,25 @@
             <span>Progress %</span>
             <input id="start-pct" type="number" min="0" max="99" value="0">
           </label>
+          <label class="field">
+            <span>Target level</span>
+            <input id="target-level" type="number" min="2" max="999" placeholder="e.g. 100">
+          </label>
+        </div>
+        <div class="calc-goal">
+          <label class="check-opt">
+            <input id="plats-only" type="checkbox" checked>
+            <span>Plats only</span>
+          </label>
+          <button class="btn ghost small" id="auto-fill" type="button">Pick random games</button>
+        </div>
+        <div class="calc-trophies">
+          <div class="tr-plat"><span>Plats</span><strong id="stat-plats">0</strong></div>
+          <div class="tr-gold"><span>Gold</span><strong id="stat-gold">0</strong></div>
+          <div class="tr-silver"><span>Silver</span><strong id="stat-silver">0</strong></div>
+          <div class="tr-bronze"><span>Bronze</span><strong id="stat-bronze">0</strong></div>
         </div>
         <div class="calc-stats" id="calc-stats">
-          <div><span>Platinums</span><strong id="stat-plats">0</strong></div>
           <div><span>Points gained</span><strong id="stat-points">+0</strong></div>
           <div><span>New level</span><strong id="stat-level">Lvl 1 (0%)</strong></div>
         </div>
