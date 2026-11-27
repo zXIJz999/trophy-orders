@@ -40,7 +40,7 @@ const selected = new Map();
 document.getElementById('max').textContent = MAX_GAMES;
 
 function loadLibrary() {
-  fetch('catalog.json')
+  fetch('catalog.json?v=4')
     .then(res => res.json())
     .then(rows => {
       games = rows.map(([id, name, region, points = null, plat = null, bronze = null, silver = null, gold = null]) => ({
@@ -263,7 +263,10 @@ function shuffle(arr) {
 }
 
 async function pickRandomToTarget() {
-  if (!games.length) return;
+  if (!games.length) {
+    updateCalculator('Library is still loading, please try again in a second.');
+    return;
+  }
   const rawStart = Number(els.startLevel.value);
   const startLvl = Math.max(1, Math.min(999, Number.isFinite(rawStart) ? Math.floor(rawStart) : 1));
   const rawPct = Number(els.startPct.value);
@@ -470,6 +473,12 @@ els.copy.addEventListener('click', copyCode);
 els.clear.addEventListener('click', clearOrder);
 els.startLevel.addEventListener('input', () => updateCalculator());
 els.startPct.addEventListener('input', () => updateCalculator());
+els.targetLevel.addEventListener('keydown', e => {
+  if (e.key === 'Enter') {
+    e.preventDefault();
+    pickRandomToTarget();
+  }
+});
 els.autoFill.addEventListener('click', pickRandomToTarget);
 
 drawPicked();

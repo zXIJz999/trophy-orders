@@ -160,7 +160,7 @@ h2 {
   gap: 10px;
 }
 
-input,
+input:not([type="checkbox"]),
 select,
 textarea {
   width: 100%;
@@ -354,20 +354,42 @@ textarea {
 .check-opt {
   display: inline-flex;
   align-items: center;
-  gap: 7px;
+  gap: 8px;
   color: var(--muted);
   font-size: 12px;
   font-weight: 600;
   cursor: pointer;
+  user-select: none;
 }
 
-.check-opt input {
-  width: 15px;
-  height: 15px;
+.check-opt input[type="checkbox"] {
+  appearance: none;
+  -webkit-appearance: none;
+  flex: none;
+  width: 16px;
+  height: 16px;
   min-height: 0;
+  margin: 0;
   padding: 0;
-  accent-color: var(--blue2);
+  border: 1px solid rgba(139, 184, 236, .4);
+  background: var(--surface2);
+  display: grid;
+  place-items: center;
   cursor: pointer;
+  transition: background .15s, border-color .15s;
+}
+
+.check-opt input[type="checkbox"]:checked {
+  background: var(--blue);
+  border-color: var(--blue);
+}
+
+.check-opt input[type="checkbox"]:checked::after {
+  content: '\2713';
+  color: #fff;
+  font-size: 11px;
+  font-weight: 800;
+  line-height: 1;
 }
 
 .btn.small {
