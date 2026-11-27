@@ -27,6 +27,7 @@ const els = {
   statBronze: document.getElementById('stat-bronze'),
   statPoints: document.getElementById('stat-points'),
   statLevel: document.getElementById('stat-level'),
+  statEta: document.getElementById('stat-eta'),
   calcNote: document.getElementById('calc-note')
 };
 
@@ -195,6 +196,17 @@ function calcLevel(totalPoints) {
   return { level: 999, pct: 0, tier: 'Platinum' };
 }
 
+function formatEta(gameCount, totalTrophies) {
+  if (!gameCount) return '--';
+  const secs = Math.round(gameCount * 14 + totalTrophies * 0.25);
+  if (secs < 60) return `~${secs}s`;
+  const mins = Math.round(secs / 60);
+  if (mins < 60) return `~${mins} min`;
+  const hrs = Math.floor(mins / 60);
+  const rem = mins % 60;
+  return rem ? `~${hrs}h ${rem}m` : `~${hrs}h`;
+}
+
 function updateCalculator(customNote = '') {
   const rawLvl = Number(els.startLevel.value);
   const startLvl = Math.max(1, Math.min(999, Number.isFinite(rawLvl) ? Math.floor(rawLvl) : 1));
@@ -206,6 +218,7 @@ function updateCalculator(customNote = '') {
   let gold = 0;
   let silver = 0;
   let bronze = 0;
+  let totalTrophies = 0;
   let known = 0;
   let noPlat = 0;
   selected.forEach(g => {
@@ -213,13 +226,16 @@ function updateCalculator(customNote = '') {
       known++;
       orderPts += g.points;
     }
+    let gameTrophies = 0;
     if (typeof g.plat === 'number') {
       if (g.plat > 0) plats += g.plat;
       else noPlat++;
+      gameTrophies += g.plat;
     }
-    if (typeof g.gold === 'number') gold += g.gold;
-    if (typeof g.silver === 'number') silver += g.silver;
-    if (typeof g.bronze === 'number') bronze += g.bronze;
+    if (typeof g.gold === 'number') { gold += g.gold; gameTrophies += g.gold; }
+    if (typeof g.silver === 'number') { silver += g.silver; gameTrophies += g.silver; }
+    if (typeof g.bronze === 'number') { bronze += g.bronze; gameTrophies += g.bronze; }
+    totalTrophies += gameTrophies > 0 ? gameTrophies : 25;
   });
 
   const startBase = basePoints(startLvl) + (startLvl < 999 ? Math.floor((startPct / 100) * levelCost(startLvl)) : 0);
@@ -232,6 +248,7 @@ function updateCalculator(customNote = '') {
   els.statBronze.textContent = bronze.toLocaleString();
   els.statPoints.textContent = '+' + orderPts.toLocaleString();
   els.statLevel.textContent = `Lvl ${after.level} (${after.pct}%)` + (gained > 0 ? ` +${gained}` : '');
+  els.statEta.textContent = formatEta(selected.size, totalTrophies);
 
   const missing = selected.size - known;
   if (customNote) {
