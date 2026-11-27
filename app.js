@@ -175,6 +175,16 @@ function drawBundles() {
   }
 }
 
+function volumePrice(n) {
+  if (n <= 0) return 0;
+  let total = Math.min(n, 15) * 1.0;
+  if (n > 15) total += Math.min(n - 15, 35) * 0.45;
+  if (n > 50) total += Math.min(n - 50, 150) * 0.10;
+  if (n > 200) total += Math.min(n - 200, 800) * 0.0175;
+  if (n > 1000) total += (n - 1000) * 0.01;
+  return Math.min(60, Math.round(total));
+}
+
 function calculatePricing() {
   const platKeys = new Set();
   selected.forEach(g => {
@@ -183,7 +193,7 @@ function calculatePricing() {
   const regular = platKeys.size;
   const claimed = new Set();
   const matched = [];
-  let price = 0;
+  let bundleSum = 0;
 
   const ranked = [...bundles].sort((a, b) => b.savings - a.savings || b.platCount - a.platCount);
   for (const b of ranked) {
@@ -195,11 +205,14 @@ function calculatePricing() {
     if (ok) {
       for (const k of b.keys) claimed.add(k);
       matched.push(b);
-      price += b.price;
+      bundleSum += b.price;
     }
   }
-  price += regular - claimed.size;
-  return { price, regular, savings: regular - price, matched };
+  const bundlePlusExtras = bundleSum + volumePrice(regular - claimed.size);
+  const wholeOrderVol = volumePrice(regular);
+  const price = Math.min(60, bundlePlusExtras, wholeOrderVol);
+  const usedBundles = matched.length > 0 && bundlePlusExtras <= wholeOrderVol ? matched : [];
+  return { price, regular, savings: Math.max(0, regular - price), matched: usedBundles, capped: regular > 60 && price >= 60 };
 }
 
 function loadLibrary() {
@@ -436,7 +449,9 @@ function updateCalculator(customNote = '') {
     els.calcNote.hidden = true;
   } else {
     const bits = [`${after.tier} tier`];
-    if (pricing.matched.length > 0) bits.push('Bundles: ' + pricing.matched.map(b => b.name).join(', '));
+    if (pricing.capped) bits.push('$60 max cap applied');
+    else if (pricing.matched.length > 0) bits.push('Bundles: ' + pricing.matched.map(b => b.name).join(', '));
+    else if (pricing.savings > 0) bits.push('Volume discount');
     if (noPlat > 0) bits.push(`${noPlat} free bonus (no-plat)`);
     if (missing > 0) bits.push(`${known}/${selected.size} games have point data`);
     els.calcNote.hidden = false;
