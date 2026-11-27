@@ -56,6 +56,24 @@
         <h2>Your order</h2>
         <span class="count" id="selected-count">0 / 300</span>
       </div>
+      <div class="calc-box">
+        <div class="calc-inputs">
+          <label class="field">
+            <span>Current level</span>
+            <input id="start-level" type="number" min="1" max="999" value="1">
+          </label>
+          <label class="field">
+            <span>Progress %</span>
+            <input id="start-pct" type="number" min="0" max="99" value="0">
+          </label>
+        </div>
+        <div class="calc-stats" id="calc-stats">
+          <div><span>Platinums</span><strong id="stat-plats">0</strong></div>
+          <div><span>Points gained</span><strong id="stat-points">+0</strong></div>
+          <div><span>New level</span><strong id="stat-level">Lvl 1 (0%)</strong></div>
+        </div>
+        <div class="calc-note" id="calc-note" hidden></div>
+      </div>
       <ul class="list picked" id="picked"></ul>
       <p class="empty" id="empty">Nothing added yet.</p>
       <div class="actions">
