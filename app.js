@@ -28,14 +28,179 @@ const els = {
   statPoints: document.getElementById('stat-points'),
   statLevel: document.getElementById('stat-level'),
   statEta: document.getElementById('stat-eta'),
+  statPrice: document.getElementById('stat-price'),
+  statReg: document.getElementById('stat-reg'),
+  statSave: document.getElementById('stat-save'),
+  bundlesGrid: document.getElementById('bundles-grid'),
+  toggleBundles: document.getElementById('toggle-bundles'),
   calcNote: document.getElementById('calc-note')
 };
 
 const regionNames = { US: 'US', EU: 'EU', JP: 'JP', AS: 'ASIA', KR: 'KR' };
 
+const BUNDLE_DEFS = [
+  { id: 'cod', name: 'Call of Duty', studio: 'Activision', match: k => k.includes('call of duty') },
+  { id: 'rockstar', name: 'Rockstar Games', studio: 'Full Studio', match: k => k.startsWith('grand theft auto') || k.startsWith('red dead redemption') || k === 'bully' || k === 'l.a. noire' || k === 'l.a. noire: the vr case files' || k === 'manhunt' },
+  { id: 'gta', name: 'Grand Theft Auto', studio: 'Rockstar Games', match: k => k.startsWith('grand theft auto') },
+  { id: 'ac', name: "Assassin's Creed", studio: 'Ubisoft', match: k => k.includes("assassin's creed") || k.includes('assassins creed') },
+  { id: 'fifa', name: 'FIFA & EA FC', studio: 'EA Sports', match: k => k.startsWith('fifa ') || k.startsWith('ea sports fc') },
+  { id: 'ps', name: 'PlayStation Studios', studio: 'Sony Interactive', match: k => /^(god of war|uncharted:|uncharted |the last of us|marvel's spider-man|horizon |ghost of tsushima|infamous |ratchet & clank|days gone)/.test(k) && !k.startsWith('horizon chase') && !k.startsWith('uncharted tides') },
+  { id: 're', name: 'Resident Evil', studio: 'Capcom', match: k => k.startsWith('resident evil') },
+  { id: 'lego', name: 'LEGO Collection', studio: 'TT Games / WB', match: k => k.startsWith('lego ') },
+  { id: 'farcry', name: 'Far Cry', studio: 'Ubisoft', match: k => k.startsWith('far cry') },
+  { id: 'ea_action', name: 'Battlefield & NFS', studio: 'Electronic Arts', match: k => k.startsWith('battlefield') || k.startsWith('need for speed') },
+  { id: '2ksports', name: '2K Sports (NBA/WWE)', studio: '2K Games', match: k => k.startsWith('nba 2k') || k.startsWith('wwe 2k') || k.startsWith('pga tour 2k') || k.startsWith('topspin 2k') },
+  { id: 'fromsoft', name: 'FromSoftware Souls', studio: 'FromSoftware', match: k => k.startsWith('dark souls') || k.startsWith('bloodborne') || k.startsWith('sekiro') || k.startsWith('elden ring') || k.startsWith('armored core') },
+  { id: 'yakuza', name: 'Yakuza / LaD', studio: 'RGG / SEGA', match: k => k.includes('yakuza') || k.includes('like a dragon') },
+  { id: 'ff', name: 'Final Fantasy', studio: 'Square Enix', match: k => k.includes('final fantasy') },
+  { id: 'tombraider', name: 'Tomb Raider', studio: 'Crystal Dynamics', match: k => k.includes('tomb raider') },
+  { id: '2kshooter', name: 'Borderlands & BioShock', studio: '2K Games', match: k => k.startsWith('borderlands') || k.startsWith('bioshock') || k.startsWith('tiny tina') }
+];
+
 let games = [];
 let matches = [];
+let bundles = [];
+let showAllBundles = false;
 const selected = new Map();
+
+function buildBundles() {
+  const byName = new Map();
+  for (const g of games) {
+    if (!(g.plat > 0)) continue;
+    const k = gameKey(g);
+    let bucket = byName.get(k);
+    if (!bucket) {
+      bucket = [];
+      byName.set(k, bucket);
+    }
+    bucket.push(g);
+  }
+  bundles = BUNDLE_DEFS.map(def => {
+    const items = [];
+    const keys = new Set();
+    byName.forEach((bucket, k) => {
+      if (!def.match(k)) return;
+      const pref = bucket.find(x => x.region === 'US') || bucket.find(x => x.region === 'EU') || bucket[0];
+      items.push(pref);
+      keys.add(k);
+    });
+    const platCount = items.length;
+    const regular = platCount;
+    const price = Math.round(platCount * 0.65);
+    return { ...def, items, keys, platCount, regular, price, savings: regular - price };
+  }).filter(b => b.platCount > 0);
+  drawBundles();
+}
+
+function isBundleInOrder(bundle) {
+  if (!bundle.keys.size) return false;
+  const selKeys = new Set([...selected.values()].map(gameKey));
+  for (const k of bundle.keys) {
+    if (!selKeys.has(k)) return false;
+  }
+  return true;
+}
+
+function toggleBundle(bundle) {
+  if (isBundleInOrder(bundle)) {
+    for (const [id, g] of selected.entries()) {
+      if (bundle.keys.has(gameKey(g))) selected.delete(id);
+    }
+  } else {
+    const region = els.region.value;
+    for (const item of bundle.items) {
+      const k = gameKey(item);
+      const existing = findSelectedByName(k);
+      if (existing) selected.delete(existing.id);
+      let pick = item;
+      if (region) {
+        const regMatch = games.find(g => g.plat > 0 && g.region === region && gameKey(g) === k);
+        if (regMatch) pick = regMatch;
+      }
+      selected.set(pick.id, pick);
+    }
+  }
+  refresh();
+}
+
+function drawBundles() {
+  if (!els.bundlesGrid) return;
+  const visible = showAllBundles ? bundles : bundles.slice(0, 8);
+  const frag = document.createDocumentFragment();
+  visible.forEach(b => {
+    const active = isBundleInOrder(b);
+    const card = document.createElement('div');
+    card.className = 'bundle-card' + (active ? ' active' : '');
+
+    const top = document.createElement('div');
+    top.className = 'bundle-top';
+    const st = document.createElement('span');
+    st.className = 'bundle-studio';
+    st.textContent = b.studio;
+    const pl = document.createElement('span');
+    pl.className = 'bundle-plats';
+    pl.textContent = b.platCount + ' plats';
+    top.append(st, pl);
+
+    const title = document.createElement('h3');
+    title.className = 'bundle-title';
+    title.textContent = b.name;
+
+    const bottom = document.createElement('div');
+    bottom.className = 'bundle-bottom';
+    const pricing = document.createElement('div');
+    pricing.className = 'bundle-pricing';
+    const pr = document.createElement('span');
+    pr.className = 'bundle-price';
+    pr.textContent = '$' + b.price;
+    const reg = document.createElement('span');
+    reg.className = 'bundle-reg';
+    reg.textContent = '$' + b.regular;
+    pricing.append(pr, reg);
+
+    const btn = document.createElement('button');
+    btn.className = 'btn ghost small';
+    btn.type = 'button';
+    btn.textContent = active ? 'Added ✓' : 'Add bundle';
+    btn.addEventListener('click', () => toggleBundle(b));
+
+    bottom.append(pricing, btn);
+    card.append(top, title, bottom);
+    frag.append(card);
+  });
+  els.bundlesGrid.replaceChildren(frag);
+  if (els.toggleBundles) {
+    els.toggleBundles.hidden = bundles.length <= 8;
+    els.toggleBundles.textContent = showAllBundles ? 'Show top 8 bundles' : `Show all ${bundles.length} bundles`;
+  }
+}
+
+function calculatePricing() {
+  const platKeys = new Set();
+  selected.forEach(g => {
+    if (g.plat > 0) platKeys.add(gameKey(g));
+  });
+  const regular = platKeys.size;
+  const claimed = new Set();
+  const matched = [];
+  let price = 0;
+
+  const ranked = [...bundles].sort((a, b) => b.savings - a.savings || b.platCount - a.platCount);
+  for (const b of ranked) {
+    if (b.savings <= 0) continue;
+    let ok = true;
+    for (const k of b.keys) {
+      if (!platKeys.has(k) || claimed.has(k)) { ok = false; break; }
+    }
+    if (ok) {
+      for (const k of b.keys) claimed.add(k);
+      matched.push(b);
+      price += b.price;
+    }
+  }
+  price += regular - claimed.size;
+  return { price, regular, savings: regular - price, matched };
+}
 
 function loadLibrary() {
   fetch('catalog.json?v=4')
@@ -45,6 +210,7 @@ function loadLibrary() {
         id, name, region, points, plat, bronze, silver, gold, key: name.toLowerCase()
       }));
       els.libraryCount.textContent = games.length.toLocaleString() + ' games';
+      buildBundles();
       runSearch();
       updateCalculator();
     })
@@ -250,6 +416,18 @@ function updateCalculator(customNote = '') {
   els.statLevel.textContent = `Lvl ${after.level} (${after.pct}%)` + (gained > 0 ? ` +${gained}` : '');
   els.statEta.textContent = formatEta(selected.size, totalTrophies);
 
+  const pricing = calculatePricing();
+  els.statPrice.textContent = '$' + pricing.price.toLocaleString();
+  if (pricing.savings > 0) {
+    els.statReg.hidden = false;
+    els.statReg.textContent = '$' + pricing.regular.toLocaleString();
+    els.statSave.hidden = false;
+    els.statSave.textContent = 'Save $' + pricing.savings.toLocaleString();
+  } else {
+    els.statReg.hidden = true;
+    els.statSave.hidden = true;
+  }
+
   const missing = selected.size - known;
   if (customNote) {
     els.calcNote.hidden = false;
@@ -258,9 +436,9 @@ function updateCalculator(customNote = '') {
     els.calcNote.hidden = true;
   } else {
     const bits = [`${after.tier} tier`];
-    if (noPlat > 0) bits.push(`${noPlat} no-plat`);
+    if (pricing.matched.length > 0) bits.push('Bundles: ' + pricing.matched.map(b => b.name).join(', '));
+    if (noPlat > 0) bits.push(`${noPlat} free bonus (no-plat)`);
     if (missing > 0) bits.push(`${known}/${selected.size} games have point data`);
-    else bits.push(`all ${selected.size} games calculated`);
     els.calcNote.hidden = false;
     els.calcNote.textContent = bits.join(' · ') + '.';
   }
@@ -384,6 +562,7 @@ function addAllResults() {
 
 function refresh() {
   drawPicked();
+  drawBundles();
   els.results.querySelectorAll('.item').forEach(row => {
     row.classList.toggle('on', selected.has(Number(row.dataset.id)));
   });
@@ -469,6 +648,12 @@ els.targetLevel.addEventListener('keydown', e => {
   }
 });
 els.autoFill.addEventListener('click', pickRandomToTarget);
+if (els.toggleBundles) {
+  els.toggleBundles.addEventListener('click', () => {
+    showAllBundles = !showAllBundles;
+    drawBundles();
+  });
+}
 
 drawPicked();
 loadLibrary();

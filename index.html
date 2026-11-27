@@ -9,8 +9,8 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700;800&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=6">
-<script defer src="app.js?v=6"></script>
+<link rel="stylesheet" href="style.css?v=7">
+<script defer src="app.js?v=7"></script>
 </head>
 <body>
 <header class="top">
@@ -22,9 +22,20 @@
 
 <main class="wrap">
   <section class="intro">
-    <p class="eyebrow">Order builder</p>
+    <p class="eyebrow">Order builder · $1 per platinum</p>
     <h1>Pick your games.<br>Send us the code.</h1>
-    <p class="lead">Search the library, tick everything you want, or enter your target level to pick random games and copy your order code.</p>
+    <p class="lead">Grab a studio bundle for <b>35% off</b>, search individual titles, or pick random games to hit any target level.</p>
+  </section>
+
+  <section class="bundles-sec" aria-label="Studio Bundles">
+    <div class="bundles-head">
+      <div>
+        <h2>Studio &amp; Franchise Bundles <span class="deal-pill">35% OFF</span></h2>
+        <p class="bundles-sub">One click adds every platinum title in the series (1 region per game). Bundles stack automatically with custom picks.</p>
+      </div>
+      <button class="btn ghost small" id="toggle-bundles" type="button">Show all bundles</button>
+    </div>
+    <div class="bundles-grid" id="bundles-grid"></div>
   </section>
 
   <div class="grid">
@@ -88,6 +99,16 @@
           <div><span>Points gained</span><strong id="stat-points">+0</strong></div>
           <div><span>New level</span><strong id="stat-level">Lvl 1 (0%)</strong></div>
           <div><span>Est. time</span><strong id="stat-eta">--</strong></div>
+        </div>
+        <div class="calc-price">
+          <div>
+            <span>Order price</span>
+            <strong id="stat-price">$0</strong>
+          </div>
+          <div class="price-right">
+            <span id="stat-reg" class="price-reg" hidden></span>
+            <span id="stat-save" class="price-save" hidden></span>
+          </div>
         </div>
         <div class="calc-note" id="calc-note" hidden></div>
       </div>
