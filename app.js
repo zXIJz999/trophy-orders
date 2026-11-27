@@ -233,23 +233,46 @@ function updateCalculator() {
   }
 }
 
+function gameKey(game) {
+  return game.name.trim().replace(/\s+/g, ' ').toLowerCase();
+}
+
+function findSelectedByName(key) {
+  for (const g of selected.values()) {
+    if (gameKey(g) === key) return g;
+  }
+  return null;
+}
+
 function toggle(game) {
   if (selected.has(game.id)) {
     selected.delete(game.id);
-  } else if (selected.size < MAX_GAMES) {
-    selected.set(game.id, game);
   } else {
-    els.selectedCount.textContent = 'Order is full';
-    return;
+    const existing = findSelectedByName(gameKey(game));
+    if (existing) {
+      selected.delete(existing.id);
+      selected.set(game.id, game);
+    } else if (selected.size < MAX_GAMES) {
+      selected.set(game.id, game);
+    } else {
+      els.selectedCount.textContent = 'Order is full';
+      return;
+    }
   }
   refresh();
 }
 
 function addAllResults() {
+  const haveNames = new Set([...selected.values()].map(gameKey));
   for (const game of matches) {
     if (selected.size >= MAX_GAMES) {
       break;
     }
+    const key = gameKey(game);
+    if (selected.has(game.id) || haveNames.has(key)) {
+      continue;
+    }
+    haveNames.add(key);
     selected.set(game.id, game);
   }
   refresh();
