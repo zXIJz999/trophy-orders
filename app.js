@@ -1,4 +1,3 @@
-const MAX_GAMES = 300;
 const RESULT_LIMIT = 200;
 const PREFIX = 'TO1.';
 
@@ -36,8 +35,6 @@ const regionNames = { US: 'US', EU: 'EU', JP: 'JP', AS: 'ASIA', KR: 'KR' };
 let games = [];
 let matches = [];
 const selected = new Map();
-
-document.getElementById('max').textContent = MAX_GAMES;
 
 function loadLibrary() {
   fetch('catalog.json?v=4')
@@ -150,7 +147,7 @@ function drawPicked() {
   });
 
   els.picked.replaceChildren(frag);
-  els.selectedCount.textContent = selected.size + ' / ' + MAX_GAMES;
+  els.selectedCount.textContent = selected.size + (selected.size === 1 ? ' game' : ' games');
   els.empty.hidden = selected.size > 0;
   els.generate.disabled = selected.size === 0;
   els.clear.disabled = selected.size === 0;
@@ -311,25 +308,8 @@ async function pickRandomToTarget() {
   shuffle(pool);
 
   const picked = [];
-  while (remainingPts > 0 && picked.length < MAX_GAMES && pool.length > 0) {
-    const slotsLeft = MAX_GAMES - picked.length;
-    const avgNeeded = remainingPts / slotsLeft;
-    let idx = -1;
-    if (avgNeeded > 1250) {
-      idx = pool.findIndex(g => g.points >= avgNeeded);
-      if (idx < 0) {
-        let bestIdx = 0;
-        for (let i = 1; i < pool.length; i++) {
-          if (pool[i].points > pool[bestIdx].points) bestIdx = i;
-        }
-        idx = bestIdx;
-      }
-    } else {
-      idx = 0;
-    }
-    const chosen = pool[idx];
-    pool[idx] = pool[pool.length - 1];
-    pool.pop();
+  for (let i = 0; i < pool.length && remainingPts > 0; i++) {
+    const chosen = pool[i];
     picked.push(chosen);
     remainingPts -= chosen.points;
   }
@@ -339,7 +319,7 @@ async function pickRandomToTarget() {
   let note = '';
   if (remainingPts > 0) {
     const reached = calcLevel(targetBase - remainingPts);
-    note = `Max ${MAX_GAMES} games per order reached (Lvl ${reached.level} ${reached.pct}%) — ${remainingPts.toLocaleString()} pts short of Lvl ${targetLvl}.`;
+    note = `Added all ${picked.length.toLocaleString()} matching games (Lvl ${reached.level} ${reached.pct}%) — ${remainingPts.toLocaleString()} pts short of Lvl ${targetLvl}.`;
   }
   refresh();
   if (note) updateCalculator(note);
@@ -366,13 +346,8 @@ function toggle(game) {
     const existing = findSelectedByName(gameKey(game));
     if (existing) {
       selected.delete(existing.id);
-      selected.set(game.id, game);
-    } else if (selected.size < MAX_GAMES) {
-      selected.set(game.id, game);
-    } else {
-      els.selectedCount.textContent = 'Order is full';
-      return;
     }
+    selected.set(game.id, game);
   }
   refresh();
 }
@@ -380,9 +355,6 @@ function toggle(game) {
 function addAllResults() {
   const haveNames = new Set([...selected.values()].map(gameKey));
   for (const game of matches) {
-    if (selected.size >= MAX_GAMES) {
-      break;
-    }
     const key = gameKey(game);
     if (selected.has(game.id) || haveNames.has(key)) {
       continue;
